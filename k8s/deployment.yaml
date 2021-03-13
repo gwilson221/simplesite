@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simplesite
+  labels:
+    app: simplesite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simplesite
+  template:
+    metadata:
+      labels:
+        app: simplesite
+    spec:
+      containers:
+      - name: simplesite
+        image: gcr.io/sponge-recruit-gordon/simplesite:latest
+        ports:
+        - containerPort: 8000

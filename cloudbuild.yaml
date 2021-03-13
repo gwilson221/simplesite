@@ -1,8 +1,21 @@
 steps:
-- name: 'docker'
+  # build the container image
+- name: "gcr.io/cloud-builders/docker"
   args: ['build', '-t', 'gcr.io/$PROJECT_ID/simplesite:$REVISION_ID', '.']
+  # tag as latest
 - name: 'docker'
   args: ['tag',
     'gcr.io/$PROJECT_ID/simplesite:$REVISION_ID',
     'gcr.io/$PROJECT_ID/simplesite:latest']
-images: ['gcr.io/$PROJECT_ID/simplesite']
+  # push container image
+- name: "gcr.io/cloud-builders/docker"
+  args: ["push", "gcr.io/$PROJECT_ID/simplesite"]
+  # delete current deployment
+- name: 'gcr.io/cloud-builders/kubectl'
+  env: ['CLOUDSDK_COMPUTE_ZONE=europe-west2-b', 'CLOUDSDK_CONTAINER_CLUSTER=cluster-1']
+  args: ['delete', '-f', '/k8s/deployment.yaml']
+  # apply deployment
+- name: 'gcr.io/cloud-builders/kubectl'
+  env: ['CLOUDSDK_COMPUTE_ZONE=europe-west2-b', 'CLOUDSDK_CONTAINER_CLUSTER=cluster-1']
+  args: ['apply', '-f', '/k8s/deployment.yaml']
+
