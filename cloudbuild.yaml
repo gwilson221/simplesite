@@ -11,13 +11,9 @@ steps:
 - name: "gcr.io/cloud-builders/docker"
   args: ["push", "gcr.io/$PROJECT_ID/simplesite"]
   # deploy container image to GKE
-  # delete current deployment
+  # rollout restart
 - name: 'gcr.io/cloud-builders/kubectl'
   env: ['CLOUDSDK_COMPUTE_ZONE=europe-west2-b', 'CLOUDSDK_CONTAINER_CLUSTER=cluster-1']
-  args: ['delete', '-f', '/k8s/deployment.yaml']
-  # apply deployment
-- name: 'gcr.io/cloud-builders/kubectl'
-  env: ['CLOUDSDK_COMPUTE_ZONE=europe-west2-b', 'CLOUDSDK_CONTAINER_CLUSTER=cluster-1']
-  args: ['apply', '-f', '/k8s/deployment.yaml']
+  args: ['rollout', 'restart', 'deployment/simplesite']
 
 
