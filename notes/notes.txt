@@ -1,0 +1,31 @@
+I was originally going to use Google's managed Memcached service for the purposes of demonstrating some Terraform code, but didn't have permissions to configure the VPC to use private connectors. Instead I deployed Bitnami's Memcached Helm chart to the cluster, using its default values, and amended line 58 of the proj/settings.py file to point to the internal cluster hostname for the memcached service.
+
+Docker's documentation provided the basis for the Dockerfile, based on the python:3 image:
+https://docs.docker.com/compose/django/
+A small tweak to the file was required to correct the COPY commands I'd used initially.
+
+The first iteration of the Cloud Build configuration file created the Docker image from the Dockerfile in the repo using the revision ID as a tag, also adding tagging the image with 'latest' and then pushing to the project container registry. This way, the deployment in the cluster can be configured to use the latest image, but previous images are still present in the registry and can be deployed using the revision ID tag values if required.
+
+The Cloud Build pipeline was initially set up with a manual trigger for testing purposes.
+
+Once the build had run and the images was available in the registry, I manually ran it in the cluster, did a port-forward and then a curl request to check HTML output was received. Originally the pod failed with an error due to the fix required for the COPY command, which was diagnosed by specifying the --command -- ls -al option to kubectl run to check whether the directory contents were as expected or not.
+
+YAML files for the deployment, service and ingress were then created and run manually on the cluster. For the purposes of this exercise my plan was to then leave the service and ingress configurations in place, and add a step to the pipeline to delete then apply the deployment.yaml file. Due to an error with the kubectl pod not seeing the deployment.yaml file (and that approach being too heavy-handed anyway) it was changed to running a kubectl rollout restart, making sure the imagePullPolicy was set to Always on the deployment.
+
+I added an A record for the ingress IP address, so counter.gordon.boltstaging.com will also resolve to it.
+
+The Code Build trigger was then modified to trigger on a push to the master branch of the Github repo, using {k8s,notes}/** to ignore and changes in the k8s or notes directories.
+
+For the purposes of demonstrating some Terraform, the notes/main.tf contains Terraform that creates a really basic trigger that watches for updates to the notes/tf-build-trigger file on the master branch and then runs a build step that just echos a message. I destroyed it again since it was tested from a Cloud Shell where the state file wouldn't have persisted.
+
+Total time spent was approximately 5 hours.
+
+Possible improvements:
+- specify custom Memcached configuration if required
+- use a slimmed down Python image as the basis for the Dockerfile for space, performance and security reasons
+- tweak number of replicas or use horizontal auto-scaling for simplesite if relevant for its intended use
+- automatically create a DNS record when required, perhaps if the cluster was using the ingress-nginx and external-dns Helm charts for example
+- HTTPS configuration
+- common Terraform development process for me so far has been to start with a file like the example I created, then split out all the hard-coded values into variables, then turn into a Terraform module with values supplied by a Terragrunt values file, with Terragrunt taking care of storage and locking of state files etc.
+
+
